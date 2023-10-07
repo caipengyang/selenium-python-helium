@@ -11,12 +11,16 @@ Helium functions in your Python scripts you can import them from the
 """
 from collections import namedtuple, OrderedDict
 from copy import copy
+from threading import local
 from helium._impl import APIImpl
 from helium._impl.util.html import get_easily_readable_snippet
 from helium._impl.util.inspect_ import repr_args
 from selenium.webdriver.common.keys import Keys
 
 import helium._impl
+
+_thread_local_context = local()
+_THREAD_LOCAL_KEY__API_IMPL = "_API_IMPL"
 
 def start_chrome(
 	url=None, headless=False, maximize=False, options=None, capabilities=None
@@ -1162,10 +1166,37 @@ def highlight(element):
 	"""
 	_get_api_impl().highlight_impl(element)
 
+
+_API_IMPL = None
+
+
 def _get_api_impl():
+
+	thread_local_api_impl = get_thread_api_impl()
+	if thread_local_api_impl is not None:
+		return thread_local_api_impl
+
 	global _API_IMPL
 	if _API_IMPL is None:
 		_API_IMPL = APIImpl()
 	return _API_IMPL
 
-_API_IMPL = None
+
+def set_thread_api_impl(api: APIImpl):
+	if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
+		print(f"warning, overwrite thread-local variable:{_THREAD_LOCAL_KEY__API_IMPL}" +
+			f"old:{_thread_local_context[_THREAD_LOCAL_KEY__API_IMPL]}, new:{api}")
+	_thread_local_context[_THREAD_LOCAL_KEY__API_IMPL] = api
+
+
+def get_thread_api_impl():
+	if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
+		return _thread_local_context[_THREAD_LOCAL_KEY__API_IMPL]
+	return None
+
+
+def clear_thread_api_impl(api: APIImpl):
+	if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
+		del _thread_local_context[_THREAD_LOCAL_KEY__API_IMPL]
+	else:
+		print(f"warning, not in the current thread local map: key:{_THREAD_LOCAL_KEY__API_IMPL}, {api}")
