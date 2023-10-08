@@ -9,6 +9,8 @@ Helium functions in your Python scripts you can import them from the
 
 	from helium import *
 """
+from __future__ import annotations
+
 from collections import namedtuple, OrderedDict
 from copy import copy
 from threading import local
@@ -1138,7 +1140,7 @@ def switch_to(window):
 	"""
 	_get_api_impl().switch_to_impl(window)
 
-def kill_browser():
+def kill_browser(api_impl:APIImpl|None=None):
 	"""
 	Closes the current browser with all associated windows and potentially open
 	dialogs. Dialogs opened as a response to the browser closing (eg. "Are you
@@ -1152,7 +1154,10 @@ def kill_browser():
 		# Close Chrome:
 		kill_browser()
 	"""
-	_get_api_impl().kill_browser_impl()
+	if api_impl is not None:
+		api_impl.kill_browser_impl()
+	else:
+		_get_api_impl().kill_browser_impl()
 
 def highlight(element):
 	"""
@@ -1170,11 +1175,11 @@ def highlight(element):
 _API_IMPL = None
 
 
-def _get_api_impl():
-
-	thread_local_api_impl = get_thread_api_impl()
-	if thread_local_api_impl is not None:
-		return thread_local_api_impl
+def _get_api_impl(use_global=False)->APIImpl:
+	if not use_global:
+		thread_local_api_impl = get_thread_api_impl()
+		if thread_local_api_impl is not None:
+			return thread_local_api_impl
 
 	global _API_IMPL
 	if _API_IMPL is None:
