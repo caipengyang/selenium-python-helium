@@ -1188,20 +1188,23 @@ def _get_api_impl(use_global=False)->APIImpl:
 
 
 def set_thread_api_impl(api: APIImpl):
-	if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
-		print(f"warning, overwrite thread-local variable:{_THREAD_LOCAL_KEY__API_IMPL}" +
-			f"old:{_thread_local_context[_THREAD_LOCAL_KEY__API_IMPL]}, new:{api}")
-	_thread_local_context[_THREAD_LOCAL_KEY__API_IMPL] = api
+	try:
+		if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
+			print(f"warning, overwrite thread-local variable:{_THREAD_LOCAL_KEY__API_IMPL}" +
+				f"old:{_thread_local_context.__dict__[_THREAD_LOCAL_KEY__API_IMPL]}, new:{api}")
+		_thread_local_context.__dict__[_THREAD_LOCAL_KEY__API_IMPL] = api
+	except Exception as ex:
+		print(f"set_thread_api_impl effor: {ex}")
 
 
 def get_thread_api_impl():
 	if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
-		return _thread_local_context[_THREAD_LOCAL_KEY__API_IMPL]
+		return _thread_local_context.__dict__[_THREAD_LOCAL_KEY__API_IMPL]
 	return None
 
 
 def clear_thread_api_impl(api: APIImpl):
 	if _THREAD_LOCAL_KEY__API_IMPL in _thread_local_context.__dict__:
-		del _thread_local_context[_THREAD_LOCAL_KEY__API_IMPL]
+		del _thread_local_context.__dict__[_THREAD_LOCAL_KEY__API_IMPL]
 	else:
 		print(f"warning, not in the current thread local map: key:{_THREAD_LOCAL_KEY__API_IMPL}, {api}")
