@@ -84,12 +84,13 @@ class APIImpl:
 	def _start_firefox_driver(self, headless, options, profile):
 		firefox_options = FirefoxOptions() if options is None else options
 		firefox_profile = FirefoxProfile() if profile is None else profile
+		firefox_options.profile = firefox_profile 
 		if headless:
 			firefox_options.headless = True
 		kwargs = {
 			'options': firefox_options,
-			'firefox_profile': firefox_profile,
-			'service_log_path': 'nul' if is_windows() else '/dev/null'
+			#'firefox_profile': firefox_profile,
+			#'service_log_path': 'nul' if is_windows() else '/dev/null'
 		}
 		try:
 			result = Firefox(**kwargs)
