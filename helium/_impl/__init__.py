@@ -1,4 +1,8 @@
 from copy import copy
+
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 from helium._impl.chromedriver import install_matching_chromedriver
 from helium._impl.match_type import PREFIX_IGNORE_CASE
 from helium._impl.selenium_wrappers import WebElementWrapper, \
@@ -110,16 +114,11 @@ class APIImpl:
 	def _start_chrome_driver(self, headless, maximize, options, capabilities):
 		chrome_options = self._get_chrome_options(headless, maximize, options)
 		try:
-			result = Chrome(
-				options=chrome_options, desired_capabilities=capabilities
-			)
+			result = Chrome(options=chrome_options) #desired_capabilities=capabilities)
 		except WebDriverException:
 			# This usually happens when chromedriver is not on the PATH.
-			driver_path = install_matching_chromedriver()
 			result = Chrome(
-				options=chrome_options, desired_capabilities=capabilities,
-				executable_path=driver_path
-			)
+				options=chrome_options, service=Service(ChromeDriverManager().install())) #desired_capabilities=capabilities)
 		atexit.register(self._kill_service, result.service)
 		return result
 	def _get_chrome_options(self, headless, maximize, options):
