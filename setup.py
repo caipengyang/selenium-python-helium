@@ -3,20 +3,21 @@ from setuptools import setup, find_packages
 setup(
 	name = 'helium',
 	# Also update docs/conf.py when you change this:
-	version = '3.2.6',
+	version = '4.0.0',
 	author = 'Michael Herrmann',
 	author_email = 'michael+removethisifyouarehuman@herrmann.io',
 	description = 'Lighter browser automation based on Selenium.',
 	keywords = 'helium selenium browser automation',
-	url = 'https://github.com/mherrmann/selenium-python-helium',
+	url = 'https://github.com/mherrmann/helium',
 	python_requires='>=3',
 	packages = find_packages(exclude=['tests', 'tests.*']),
 	install_requires = [
 		# Also update requirements/base.txt when you make changes here.
-		'selenium==3.141.0',
-		# Selenium 3 is incompatible with urllib3 >= 2:
-		'urllib3<2',
-		'webdriver-manager>=4.0.0'
+		'selenium>=4.9.0,<4.10',
+		# Freeze webdriver-manager for security; It downloads and runs binaries
+		# from the internet. If it becomes malicious in the future, very bad
+		# things can happen.
+		'webdriver-manager==4.0.1'
 	],
 	package_data = {
 		'helium._impl': ['webdrivers/**/*']
@@ -35,6 +36,7 @@ setup(
 		'Programming Language :: Python :: 3.8',
 		'Programming Language :: Python :: 3.9',
 		'Programming Language :: Python :: 3.10',
+		'Programming Language :: Python :: 3.11',
 		'Operating System :: Microsoft :: Windows',
 		'Operating System :: POSIX :: Linux',
 		'Operating System :: MacOS :: MacOS X'

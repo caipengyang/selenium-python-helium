@@ -1,8 +1,5 @@
 # Also update setup.py when you edit this file.
-
-selenium==3.141.0
-
-# Selenium 3 is incompatible with urllib3 >= 2:
-urllib3<2
-
-webdriver-manager>=4.0.0
+selenium>=4.9,<4.10
+# Freeze webdriver-manager for security; It downloads and runs binaries from the
+# internet. If it becomes malicious in the future, very bad things can happen.
+webdriver-manager==4.0.1

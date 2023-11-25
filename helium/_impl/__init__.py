@@ -8,21 +8,20 @@ from helium._impl.match_type import PREFIX_IGNORE_CASE
 from helium._impl.selenium_wrappers import WebElementWrapper, \
 	WebDriverWrapper, FrameIterator, FramesChangedWhileIterating
 from helium._impl.util.dictionary import inverse
-from helium._impl.util.os_ import make_executable
 from helium._impl.util.system import is_windows, get_canonical_os_name
 from helium._impl.util.xpath import lower, predicate, predicate_or
 from inspect import getfullargspec, ismethod, isfunction
-from os import access, X_OK
-from os.path import join, dirname
 from selenium.common.exceptions import UnexpectedAlertPresentException, \
 	ElementNotVisibleException, MoveTargetOutOfBoundsException, \
 	WebDriverException, StaleElementReferenceException, \
 	NoAlertPresentException, NoSuchWindowException
+from selenium.webdriver.chrome.service import Service as ServiceChrome
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service as ServiceFirefox
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.ui import Select
-from selenium.webdriver import Chrome, ChromeOptions, Firefox, FirefoxOptions, \
-	FirefoxProfile
+from selenium.webdriver import Chrome, ChromeOptions, Firefox, FirefoxOptions
 from time import sleep, time
 
 import atexit
@@ -87,22 +86,21 @@ class APIImpl:
 		return self._start(firefox_driver, url)
 	def _start_firefox_driver(self, headless, options, profile):
 		firefox_options = FirefoxOptions() if options is None else options
-		firefox_profile = FirefoxProfile() if profile is None else profile
-		firefox_options.profile = firefox_profile 
+		firefox_options.profile = profile
 		if headless:
-			firefox_options.headless = True
+			firefox_options.add_argument('--headless')
 		kwargs = {
 			'options': firefox_options,
 			#'firefox_profile': firefox_profile,
 			#'service_log_path': 'nul' if is_windows() else '/dev/null'
 		}
-		try:
-			result = Firefox(**kwargs)
-		except WebDriverException:
-			# This usually happens when geckodriver is not on the PATH.
-			driver_path = self._use_included_web_driver('geckodriver')
-			result = Firefox(executable_path=driver_path, **kwargs)
-		atexit.register(self._kill_service, result.service)
+		if profile:
+			# This is Deprecated in the driver so only do it (and trigger the
+			# warnings) if the user requests it
+			kwargs['firefox_profile'] = profile
+		service_log_path = 'nul' if is_windows() else '/dev/null'
+		service = ServiceFirefox(log_path=service_log_path)
+		result = Firefox(service=service, **kwargs)
 		return result
 	def start_chrome_impl(
 		self, url=None, headless=False, maximize=False, options=None,
@@ -118,7 +116,8 @@ class APIImpl:
 		except WebDriverException:
 			# This usually happens when chromedriver is not on the PATH.
 			result = Chrome(
-				options=chrome_options, service=Service(ChromeDriverManager().install())) #desired_capabilities=capabilities)
+				keep_alive=False,
+				options=chrome_options, service=Service(ChromeDriverManager().install())), #desired_capabilities=capabilities)
 		atexit.register(self._kill_service, result.service)
 		return result
 	def _get_chrome_options(self, headless, maximize, options):
@@ -130,21 +129,6 @@ class APIImpl:
 		elif maximize:
 			result.add_argument('--start-maximized')
 		return result
-	def _use_included_web_driver(self, driver_name):
-		if is_windows():
-			driver_name += '.exe'
-		driver_path = join(
-			dirname(__file__), 'webdrivers', get_canonical_os_name(),
-			driver_name
-		)
-		if not access(driver_path, X_OK):
-			try:
-				make_executable(driver_path)
-			except Exception:
-				raise RuntimeError(
-					"The driver located at %s is not executable." % driver_path
-				) from None
-		return driver_path
 	def _kill_service(self, service):
 		old = service.send_remote_shutdown_command
 		service.send_remote_shutdown_command = lambda: None
@@ -233,7 +217,11 @@ class APIImpl:
 	def _move_to_element(self, element, offset):
 		result = self.require_driver().action()
 		if offset is not None:
-			result.move_to_element_with_offset(element, *offset)
+			result.move_to_element_with_offset(
+				element,
+				offset[0] - element.size['width'] / 2,
+				offset[1] - element.size['height'] / 2
+			)
 		else:
 			result.move_to_element(element)
 		return result
@@ -798,17 +786,17 @@ class SImpl(HTMLElementImpl):
 	def find_anywhere_in_curr_frame(self):
 		wrap = lambda web_elements: list(map(WebElementWrapper, web_elements))
 		if self.selector.startswith('@'):
-			return wrap(self._driver.find_elements_by_name(self.selector[1:]))
+			return wrap(self._driver.find_elements(By.NAME, self.selector[1:]))
 		if self.selector.startswith('//'):
-			return wrap(self._driver.find_elements_by_xpath(self.selector))
-		return wrap(self._driver.find_elements_by_css_selector(self.selector))
+			return wrap(self._driver.find_elements(By.XPATH, self.selector))
+		return wrap(self._driver.find_elements(By.CSS_SELECTOR, self.selector))
 
 class HTMLElementIdentifiedByXPath(HTMLElementImpl):
 	def find_anywhere_in_curr_frame(self):
 		x_path = self.get_xpath()
 		return self._sort_search_result(
 			list(map(
-				WebElementWrapper, self._driver.find_elements_by_xpath(x_path)
+				WebElementWrapper, self._driver.find_elements(By.XPATH, x_path)
 			))
 		)
 	def _sort_search_result(self, search_result):
@@ -951,7 +939,7 @@ class LabelledElement(HTMLElementImpl):
 		if xpath is None:
 			xpath = self.get_xpath()
 		return list(map(
-			WebElementWrapper, self._driver.find_elements_by_xpath(xpath)
+			WebElementWrapper, self._driver.find_elements(By.XPATH, xpath)
 		))
 	def _find_elts_by_free_text(self):
 		elt_types = [
