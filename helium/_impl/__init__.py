@@ -138,7 +138,7 @@ class APIImpl:
 			service.send_remote_shutdown_command = old
 	def _start(self, browser, url=None):
 		self.set_driver_impl(browser)
-		if url is not None:
+		if url is not None and url.strip() != "":
 			self.go_to_impl(url)
 		return self.get_driver_impl()
 	@might_spawn_window
