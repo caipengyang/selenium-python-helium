@@ -148,7 +148,7 @@ def start_firefox(url=None, headless=False, options=None, profile=None):
 	"""
 	return _get_api_impl().start_firefox_impl(url, headless, options, profile)
 
-def go_to(url):
+def go_to(url, use_global=False):
 	"""
 	:param url: URL to open.
 	:type url: str
@@ -157,7 +157,7 @@ def go_to(url):
 
 		go_to("google.com")
 	"""
-	_get_api_impl().go_to_impl(url)
+	_get_api_impl(use_global).go_to_impl(url)
 
 def set_driver(driver):
 	"""
